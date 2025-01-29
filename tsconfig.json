@@ -15,6 +15,7 @@
     "checkJs": true,
     "strictPropertyInitialization": true,
     "strictBindCallApply": true,
+    "strictNullChecks": true,
     "declaration": true,
     "noEmitOnError": true,
     "allowSyntheticDefaultImports": true,

@@ -24,6 +24,7 @@ import { request } from "undici";
 import { RTTEX } from "../utils/RTTEX";
 import { mkdir, writeFile, readFile } from "fs/promises";
 import chokidar from "chokidar";
+
 __dirname = process.cwd();
 
 export class Base {
