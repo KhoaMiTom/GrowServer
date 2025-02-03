@@ -32,38 +32,38 @@ export class PlayerRoute {
       }
     });
 
-    this.app.post("/login/validate", async (ctx) => {
-      try {
-        const body = await ctx.req.json();
-        const growId = body.data?.growId;
-        const password = body.data?.password;
+    // this.app.post("/login/validate", async (ctx) => {
+    //   try {
+    //     const body = await ctx.req.json();
+    //     const growId = body.data?.growId;
+    //     const password = body.data?.password;
 
-        if (!growId || !password) throw new Error("Unauthorized");
+    //     if (!growId || !password) throw new Error("Unauthorized");
 
-        const user = await this.base.database.players.get(growId.toLowerCase());
-        if (!user) throw new Error("User not found");
+    //     const user = await this.base.database.players.get(growId.toLowerCase());
+    //     if (!user) throw new Error("User not found");
 
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) throw new Error("Password invalid");
+    //     const isValid = await bcrypt.compare(password, user.password);
+    //     if (!isValid) throw new Error("Password invalid");
 
-        const token = jwt.sign(
-          { growId, password },
-          process.env.JWT_SECRET as string
-        );
+    //     const token = jwt.sign(
+    //       { growId, password },
+    //       process.env.JWT_SECRET as string
+    //     );
 
-        return ctx.html(
-          JSON.stringify({
-            status:      "success",
-            message:     "Account Validated.",
-            token,
-            url:         "",
-            accountType: "growtopia"
-          })
-        );
-      } catch (e) {
-        return ctx.body(`Unauthorized: ${e}`, 401);
-      }
-    });
+    //     return ctx.html(
+    //       JSON.stringify({
+    //         status:      "success",
+    //         message:     "Account Validated.",
+    //         token,
+    //         url:         "",
+    //         accountType: "growtopia"
+    //       })
+    //     );
+    //   } catch (e) {
+    //     return ctx.body(`Unauthorized: ${e}`, 401);
+    //   }
+    // });
 
     this.app.post("/growid/checktoken", async (ctx) => {
       try {
@@ -89,51 +89,51 @@ export class PlayerRoute {
       }
     });
 
-    this.app.post("/signup", async (ctx) => {
-      try {
-        const body = await ctx.req.json();
-        const growId = body.data?.growId;
-        const password = body.data?.password;
-        const confirmPassword = body.data?.confirmPassword;
+    // this.app.post("/signup", async (ctx) => {
+    //   try {
+    //     const body = await ctx.req.json();
+    //     const growId = body.data?.growId;
+    //     const password = body.data?.password;
+    //     const confirmPassword = body.data?.confirmPassword;
 
-        if (!growId || !password || !confirmPassword)
-          throw new Error("Unauthorized");
+    //     if (!growId || !password || !confirmPassword)
+    //       throw new Error("Unauthorized");
 
-        // Check if user already exists
-        const user = await this.base.database.players.get(growId.toLowerCase());
-        if (user) throw new Error("User already exists");
+    //     // Check if user already exists
+    //     const user = await this.base.database.players.get(growId.toLowerCase());
+    //     if (user) throw new Error("User already exists");
 
-        // Check if password and confirm password match
-        if (password !== confirmPassword)
-          throw new Error("Password and Confirm Password does not match");
+    //     // Check if password and confirm password match
+    //     if (password !== confirmPassword)
+    //       throw new Error("Password and Confirm Password does not match");
 
-        // Save player to database
-        await this.base.database.players.set(growId, password);
+    //     // Save player to database
+    //     await this.base.database.players.set(growId, password);
 
-        // Login user:
-        const token = jwt.sign(
-          { growId, password },
-          process.env.JWT_SECRET as string
-        );
+    //     // Login user:
+    //     const token = jwt.sign(
+    //       { growId, password },
+    //       process.env.JWT_SECRET as string
+    //     );
 
-        if (!token) throw new Error("Unauthorized");
+    //     if (!token) throw new Error("Unauthorized");
 
-        jwt.verify(token, process.env.JWT_SECRET as string);
+    //     jwt.verify(token, process.env.JWT_SECRET as string);
 
-        return ctx.html(
-          JSON.stringify({
-            status:      "success",
-            message:     "Account Validated.",
-            token,
-            url:         "",
-            accountType: "growtopia"
-          })
-        );
-      } catch (e) {
-        consola.error("Error signing up:", e);
-        return ctx.body("Unauthorized", 401);
-      }
-    });
+    //     return ctx.html(
+    //       JSON.stringify({
+    //         status:      "success",
+    //         message:     "Account Validated.",
+    //         token,
+    //         url:         "",
+    //         accountType: "growtopia"
+    //       })
+    //     );
+    //   } catch (e) {
+    //     consola.error("Error signing up:", e);
+    //     return ctx.body("Unauthorized", 401);
+    //   }
+    // });
 
     this.app.post("/login/dashboard", (ctx) => {
       const html = readFileSync(

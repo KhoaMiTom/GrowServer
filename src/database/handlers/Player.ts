@@ -8,11 +8,11 @@ import { PeerData } from "../../types/peer";
 export class PlayerDB {
   constructor(private db: LibSQLDatabase<Record<string, never>>) {}
 
-  public async get(name: string) {
+  public async get(id: number) {
     const res = await this.db
       .select()
       .from(players)
-      .where(eq(players.name, name))
+      .where(eq(players.id, id))
       .limit(1)
       .execute();
 
@@ -20,26 +20,22 @@ export class PlayerDB {
     return undefined;
   }
 
-  public async has(name: string) {
+  public async has(id: number) {
     const res = await this.db
       .select({ count: sql`count(*)` })
       .from(players)
-      .where(eq(players.name, name))
+      .where(eq(players.id, id))
       .limit(1)
       .execute();
 
     return (res[0].count as number) > 0;
   }
 
-  public async set(name: string, password: string) {
+  public async set(display_name: string) {
     const salt = await bcrypt.genSalt(10);
-    const hashPassword = await bcrypt.hash(password, salt);
 
     const res = await this.db.insert(players).values({
-      display_name: name,
-      name:         name.toLowerCase(),
-      password:     hashPassword,
-      role:         ROLE.BASIC
+      display_name: display_name.toLowerCase(),
     });
 
     if (res && res.lastInsertRowid) return res.lastInsertRowid;
@@ -52,7 +48,6 @@ export class PlayerDB {
     const res = await this.db
       .update(players)
       .set({
-        role:                data.role,
         inventory:           Buffer.from(JSON.stringify(data.inventory)),
         clothing:            Buffer.from(JSON.stringify(data.clothing)),
         gems:                data.gems,

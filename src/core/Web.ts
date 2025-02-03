@@ -9,18 +9,22 @@ import { ApiRoute } from "../web/routes/api";
 import { PlayerRoute } from "../web/routes/player";
 import { GrowtopiaRoute } from "../web/routes/growtopia";
 import { readFile } from "fs/promises";
-import { authOpts } from "../auth/authOpts";
+import { authOpts, drizzleAdapterConfig } from "../auth/authOpts";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { showRoutes } from 'hono/dev';
+import { cors } from "hono/cors";
+import { user } from "../database/schemas/Auth";
 
 __dirname = process.cwd();
 
 export async function Web(base: Base) {
   const app = new Hono();
-  const auth = betterAuth(Object.assign({database: drizzleAdapter(base.database.db, {
-    provider: "sqlite"
-  }), authOpts }));
+  const auth = betterAuth(Object.assign({
+    database: drizzleAdapter(base.database.db, drizzleAdapterConfig),
+  }, authOpts));
+
+
 
   const buns = process.versions.bun ? await import("hono/bun") : undefined;
 
@@ -36,9 +40,18 @@ export async function Web(base: Base) {
       })
   );
 
-  app.on(["POST", "GET"], "/api/auth/**", (c) => {
-    return auth.handler(c.req.raw);
-  });
+  app.use(
+    '/api/auth/**', // or replace with "*" to enable cors for all routes
+    cors({
+      origin:        'http://localhost:5173', // replace with your origin
+      allowHeaders:  ['Content-Type', 'Authorization'],
+      allowMethods:  ['POST', 'GET', 'OPTIONS'],
+      exposeHeaders: ['Content-Length'],
+      maxAge:        600,
+      credentials:   true
+    })
+  );
+  app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
 
   app.route("/", await new ApiRoute(base).execute());
   app.route("/", await new PlayerRoute(base).execute());

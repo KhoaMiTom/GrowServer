@@ -1,9 +1,14 @@
 import { type BetterAuthOptions } from "better-auth";
-import { username } from "better-auth/plugins";
+import { type DrizzleAdapterConfig } from "better-auth/adapters/drizzle";
+import { jwt, username } from "better-auth/plugins";
+import { account, jwks, session, user, verification } from "../database/schemas/Auth";
+import { players } from "../database/schemas/Player";
+import { worlds } from "../database/schemas/World";
 
 export const authOpts: BetterAuthOptions = {
   plugins: [ 
-    username() 
+    username() ,
+    jwt(),
   ],
   emailAndPassword: { 
     enabled: true, 
@@ -20,7 +25,27 @@ export const authOpts: BetterAuthOptions = {
         type:     "number",
         required: false,
         input:    false,
-      }
-    }
+      },
+      role: {
+        type:         "string",
+        required:     false,
+        input:        false,
+        defaultValue: "2",
+      },
+    },
+
+  }
+};
+
+export const drizzleAdapterConfig: DrizzleAdapterConfig = {
+  provider: "sqlite",
+  schema:   {
+    user,
+    account,
+    session,
+    verification,
+    jwks,
+    players,
+    worlds
   }
 };

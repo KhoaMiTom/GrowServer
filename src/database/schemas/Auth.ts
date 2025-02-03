@@ -9,7 +9,8 @@ export const user = sqliteTable("user", {
   createdAt:     integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt:     integer('updated_at', { mode: 'timestamp' }).notNull(),
   username:      text('username').unique(),
-  playerId:      integer('player_id')
+  playerId:      integer('player_id'),
+  role:          text('role')
 });
 
 export const session = sqliteTable("session", {
@@ -46,4 +47,11 @@ export const verification = sqliteTable("verification", {
   expiresAt:  integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt:  integer('created_at', { mode: 'timestamp' }),
   updatedAt:  integer('updated_at', { mode: 'timestamp' })
+});
+
+export const jwks = sqliteTable("jwks", {
+  id:         text("id").primaryKey(),
+  publicKey:  text('public_key').notNull(),
+  privateKey: text('private_key').notNull(),
+  createdAt:  integer('created_at', { mode: 'timestamp' }).notNull()
 });

@@ -7,6 +7,7 @@
     "test": "nr build && (node dist/src/app.js || bun run dist/src/app.js)",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
+    "ba:generate": "nlx @better-auth/cli@latest generate --config ./src/auth/index.ts --output ./src/database/schemas/Auth.ts",
     "bun": "cross-env RUNTIME_ENV=bun bun run --bun",
     "node": "cross-env RUNTIME_ENV=node node",
     "dev": "cross-env RUNTIME_ENV=node tsx ./src/app.ts",
