@@ -17,6 +17,7 @@ import {
   TankTypes
 } from "../Constants";
 import { manageArray } from "../utils/Utils";
+import { ErrorLogger } from "../utils/ErrorLogger";
 
 export class Peer extends OldPeer<PeerData> {
   public base;
@@ -45,17 +46,30 @@ export class Peer extends OldPeer<PeerData> {
         level:             data.level,
         lastCheckpoint:    data.lastCheckpoint,
         lastVisitedWorlds: data.lastVisitedWorlds,
-        state:             data.state
+        state: {
+          ...data.state,
+          autoPickupGems: data.state?.autoPickupGems ?? false
+        }
       };
   }
 
   public async saveToCache() {
-    this.base.cache.peers.set(this.data.netID, this.data);
-    return true;
+    try {
+      this.base.cache.peers.set(this.data.netID, this.data);
+      return true;
+    } catch (err) {
+      await ErrorLogger.logError(err as Error, "Peer.saveToCache");
+      return false;
+    }
   }
 
   public async saveToDatabase() {
-    return await this.base.database.players.save(this.data);
+    try {
+      return await this.base.database.players.save(this.data);
+    } catch (err) {
+      await ErrorLogger.logError(err as Error, "Peer.saveToDatabase");
+      return false;
+    }
   }
 
   public get name(): string {
@@ -207,24 +221,28 @@ export class Peer extends OldPeer<PeerData> {
   }
 
   public async enterWorld(worldName: string, x?: number, y?: number) {
-    this.data.world = worldName;
+    try {
+      this.data.world = worldName;
 
-    const world = this.currentWorld();
+      const world = this.currentWorld();
 
-    const mainDoor = world?.data.blocks?.find((block) => block.fg === 6);
+      const mainDoor = world?.data.blocks?.find((block) => block.fg === 6);
 
-    const xDoor = x ? x : (mainDoor?.x as number);
-    const yDoor = y ? y : (mainDoor?.y as number);
+      const xDoor = x ? x : (mainDoor?.x as number);
+      const yDoor = y ? y : (mainDoor?.y as number);
 
-    await world?.enter(this, xDoor, yDoor);
-    this.inventory();
-    this.sound("audio/door_open.wav");
+      await world?.enter(this, xDoor, yDoor);
+      this.inventory();
+      this.sound("audio/door_open.wav");
 
-    this.data.lastVisitedWorlds = manageArray(
-      this.data.lastVisitedWorlds!,
-      6,
-      worldName
-    );
+      this.data.lastVisitedWorlds = manageArray(
+        this.data.lastVisitedWorlds!,
+        6,
+        worldName
+      );
+    } catch (err) {
+      await ErrorLogger.logError(err as Error, "Peer.enterWorld");
+    }
   }
 
   /**

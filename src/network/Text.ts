@@ -227,6 +227,7 @@ export class ITextPacket {
         mod:             0,
         canWalkInBlocks: false,
         modsEffect:      0,
+        autoPickupGems:  false,
         lava:            {
           damage:       0,
           resetStateAt: 0

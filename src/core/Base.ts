@@ -27,6 +27,7 @@ import { RTTEX } from "../utils/RTTEX";
 import { mkdir, writeFile, readFile } from "fs/promises";
 import chokidar from "chokidar";
 import { ITEMS_DAT_FETCH_URL } from "../Constants";
+import { ErrorLogger } from "../utils/ErrorLogger";
 __dirname = process.cwd();
 
 export class Base {
@@ -286,34 +287,28 @@ export class Base {
     }
   }
 
-  public async saveAll(disconnectAll = false): Promise<boolean> {
-    consola.info(
-      `Saving ${this.cache.peers.size} peers & ${this.cache.worlds.size} worlds`
-    );
-
-    const worldsSaved = await this.saveWorlds();
-    const playersSaved = await this.savePlayers(disconnectAll);
-
-    return worldsSaved && playersSaved;
+  public async saveAll(disconenctAll: boolean) {
+    try {
+      await this.savePlayers(disconenctAll);
+      await this.saveWorlds();
+      return true;
+    } catch (err) {
+      await ErrorLogger.logError(err as Error, "Base.saveAll");
+      return false;
+    }
   }
 
   public async saveWorlds() {
     try {
       let savedCount = 0;
       for (const [, world] of this.cache.worlds) {
-        const wrld = new World(this, world.name);
-        if (typeof wrld.worldName === "string")
-          await wrld.saveToDatabase().catch((e) => consola.error(e));
-        else
-          consola.warn(
-            `Oh no there's undefined (${savedCount}) world, skipping..`
-          );
+        await this.database.worlds.save(world);
         savedCount++;
       }
       consola.success(`Saved ${savedCount} worlds`);
       return true;
     } catch (err) {
-      consola.error(`Failed to save worlds: ${err}`);
+      await ErrorLogger.logError(err as Error, "Base.saveWorlds");
       return false;
     }
   }
@@ -332,7 +327,7 @@ export class Base {
       consola.success(`Saved ${savedCount} players`);
       return true;
     } catch (err) {
-      consola.error(`Failed to save players: ${err}`);
+      await ErrorLogger.logError(err as Error, "Base.savePlayers");
       return false;
     }
   }

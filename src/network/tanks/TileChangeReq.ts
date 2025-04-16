@@ -665,42 +665,93 @@ export class TileChangeReq {
     });
   }
 
-  // If you will want to drop gems on the floor use the following code (fix is required)
-  //public splitGems(num: number) {
-  //  const gemValues = {
-  //    yellow: 1,
-  //    blue:   5,
-  //    red:    10,
-  //    green:  50,
-  //    purple: 100
-  //  };
+  public splitGems(num: number) {
+    const gemValues = {
+      yellow: 1,
+      blue: 5, 
+      red: 10,
+      green: 50,
+      purple: 100
+    };
 
-  //  const values = [];
+    const values = [];
 
-  //  for (const [gemName, gemValue] of Object.entries(gemValues).sort((a, b) => b[1] - a[1])) {
-  //    const maxGems = Math.floor(num / gemValue);
-  //    values.push(...Array(maxGems).fill(gemValue));
-  //    num -= maxGems * gemValue;
-  //    if (num === 0) {
-  //      break;
-  //    }
-  //  }
+    for (const [gemName, gemValue] of Object.entries(gemValues).sort((a, b) => b[1] - a[1])) {
+      const maxGems = Math.floor(num / gemValue);
+      values.push(...Array(maxGems).fill(gemValue));
+      num -= maxGems * gemValue;
+      if (num === 0) {
+        break;
+      }
+    }
 
-  //  return values;
-  //}
+    return values;
+  }
 
-  //public dropRandomGems(min: number, max: number, block: Block) {
-  //  const randGems = Math.floor(Math.random() * (max - min + 1)) + min;
-  //  const arrGems = this.splitGems(randGems);
+  public dropRandomGems(min: number, max: number, block: Block) {
+    const randGems = Math.floor(Math.random() * (max - min + 1)) + min;
+    const arrGems = this.splitGems(randGems);
 
-  //  arrGems.forEach((v) => {
-  //    const extra = Math.random() * 6;
+    if (this.peer.data.state.autoPickupGems) {
+      // Auto collect gems
+      const totalGems = arrGems.reduce((sum, value) => sum + value, 0);
+      this.peer.data.gems += totalGems;
+      this.peer.send(
+        Variant.from(
+          "OnTalkBubble",
+          this.peer.data.netID,
+          `\`2Collected ${totalGems} gems\`\``,
+          0
+        ),
+        Variant.from("OnSetBux", this.peer.data.gems)
+      );
+      this.peer.saveToCache();
+      this.peer.saveToDatabase();
+    } else {
+      // Drop gems normally
+      arrGems.forEach((v) => {
+        const extra = Math.random() * 6;
+        const x = (block.x as number) * 32 + extra;
+        const y = (block.y as number) * 32 + extra - Math.floor(Math.random() * (3 - -1) + -3);
+        this.world.drop(this.peer, x, y, 112, v, { tree: true, noSimilar: true });
+      });
+    }
+  }
 
-  //    const x = (block.x as number) * 32 + extra;
-  //    const y = (block.y as number) * 32 + extra - Math.floor(Math.random() * (3 - -1) + -3);
-  //    this.world.drop(this.peer, x, y, 112, v, { tree: true, noSimilar: true });
-  //  });
-  //}
+  private calculateGemDrop() {
+    const rarity = this.itemMeta.rarity ?? 1;
+    const gems = this.randomizeGemsDrop(rarity);
+    if (gems > 0) {
+      this.dropRandomGems(gems, gems * 2, this.block);
+    }
+  }
+
+  private randomizeGemsDrop(rarity: number) {
+    const max = Math.random();
+    let bonus = 0;
+    const threshold = Math.min(0.1 + (rarity / 100), 0.5); // Linear increase, caps on 0.5
+    
+    if (max <= threshold) {
+      bonus = 1;
+    }
+    if (rarity >= 30 && max <= 0.5) {
+      bonus = 5;
+    } else if (rarity >= 60 && max <= 0.6) {
+      bonus = 12;
+    } else if (rarity >= 60 && max <= 0.3) {
+      bonus = 20; // Add bonus for high rarity items
+    }
+
+    // Gem Calculation based on Rarity
+    let gems: number;
+    if (rarity < 30) {
+      gems = rarity / 12;
+    } else {
+      gems = rarity / 8;
+    }
+
+    return Math.floor(gems + bonus);
+  }
 
   private onFistDestroyed() {
     const placedItem = this.base.items.metadata.items.find(
@@ -841,73 +892,6 @@ export class TileChangeReq {
     );
   }
 
-  private calculateGemDrop() {
-    const rarity = this.itemMeta.rarity as number;
-    if (rarity <= 998) {
-      //this.peer.addExp(rarity / 5 > 0 ? rarity / 5 : 1);
-    }
-
-    // used Kukuri's code for gems drop https://discord.com/channels/617041217951236291/1109350502975676536/1322578761102917663
-    const amount = this.randomizeGemsDrop(rarity);
-    if (amount === 0) return;
-
-    if (isNaN(amount) || amount < 0) {
-      return this.peer.send(Variant.from("OnConsoleMessage", "`4Invalid amount. Please specify a positive number.`"));
-    }
-
-    const targetPlayer = this.peer.data;
-
-    if (targetPlayer) {
-
-      targetPlayer.gems += amount;
-      this.peer.send(Variant.from("OnConsoleMessage", `\`2Collected ${amount} gems`));
-
-      if (targetPlayer !== this.peer.data) {
-        const targetPeer = new Peer(this.base, targetPlayer?.netID);
-        console.log("Successfully added gems");
-        targetPeer.send(Variant.from("OnConsoleMessage", `\`2${this.peer.data.tankIDName} has added ${amount} gems to your account. You now have ${targetPlayer.gems} gems.`));
-      }
-
-      this.peer.send(Variant.from("OnSetBux", this.peer.data.gems));
-
-      this.peer.saveToCache();
-      this.peer.saveToDatabase();
-
-    }
-  }
-
-  // Trying to add more gems, because https://growtopia.fandom.com/wiki/Chandelier
-  // some items may drop more than gem calculation based on rarity
-  private randomizeGemsDrop(rarity: number) {
-    const max = Math.random();
-    let bonus = 0;
-    const threshold = Math.min(0.1 + (rarity / 100), 0.5); // Linear increase, caps on 0.5
-    // How it works: For rarity 5, threshold = 0.15, For rarity 30, threshold = 0.2
-    if (max <= threshold) {
-      bonus = 1;
-    }
-    if (rarity >= 30 && max <= 0.5) {
-      bonus = 5;
-    } else if (rarity >= 60 && max <= 0.6) {
-      bonus = 12;
-    } else if (rarity >= 60 && max <= 0.3) {
-      bonus = 5;
-    }
-
-    // Gem Calculation based on Rarity
-    let gems: number;
-    if (rarity < 30) {
-      gems = rarity / 12;
-    } else {
-      gems = rarity / 8;
-    }
-
-    return Math.floor(gems + bonus);
-  }
-
-  // Tried to find info about drop rates, here's an info on seeds: https://growtopia.fandom.com/wiki/Gems
-  // https://www.growtopiagame.com/forums/forum/general/guidebook/273543-farming-calculator%E2%80%94estimate-seeds-gems-xp-with-formula-explanations
-  // https://www.growtopiagame.com/forums/forum/general/guidebook/284860-beastly-s-calculator-hub/page12
   private randomizeDrop(id: number) {
     if (id === -1) {
       return 0; // was -1. block with id -1 can drop but when you will enter world with this dropped -1 id block it will throw an error 

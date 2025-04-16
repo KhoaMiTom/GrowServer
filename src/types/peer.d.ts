@@ -27,6 +27,7 @@ export interface PeerState {
   canWalkInBlocks: boolean;
   modsEffect: number;
   lava: LavaState;
+  autoPickupGems: boolean;
 }
 
 export interface LavaState {
