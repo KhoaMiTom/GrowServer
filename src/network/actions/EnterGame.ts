@@ -15,14 +15,14 @@ export class EnterGame {
   ): Promise<void> {
     const tes = new DialogBuilder()
       .defaultColor()
-      .addLabelWithIcon("`wThe GrowServer Gazette``", "5016", "big")
+      .addLabelWithIcon("`wOldGrow``", "64", "big")
       .addSpacer("small")
       .raw(
         "add_image_button||interface/banner-transparent.rttex|bannerlayout|||\n"
       )
-      .addTextBox("Welcome to GrowServer")
+      .addTextBox("Welcome to OldGrow")
       .addQuickExit()
-      .endDialog("gazzette_end", "Cancel", "Ok")
+      .endDialog("", "Thank you", "")
       .str();
     this.peer.send(
       Variant.from(
@@ -53,7 +53,7 @@ ${this.peer.data.lastVisitedWorlds
       ),
       Variant.from(
         "OnConsoleMessage",
-        `Welcome ${this.peer.name} Where would you like to go?`
+        `Welcome ${this.peer.name}! There are \`w${Array.from(this.base.cache.worlds.values()).reduce((total, world) => total + (world.playerCount || 0), 0)}\`\` players online.`
       ),
       Variant.from({ delay: 100 }, "OnDialogRequest", tes)
     );
