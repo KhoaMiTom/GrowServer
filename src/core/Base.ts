@@ -70,7 +70,7 @@ export class Base {
   public async start() {
     try {
       consola.box(
-        `GrowServer\nVersion: ${this.package.version}\n© JadlionHD 2022-${new Date().getFullYear()}`
+        `OldGrow\nVersion: ${this.package.version}\n© KhoaMiTom 2022-${new Date().getFullYear()}`
       );
 
       // Check if port is available

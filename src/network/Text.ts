@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { type JsonObject } from "type-fest";
 import { customAlphabet } from "nanoid";
+import { Webhook } from "../utils/Webhook";
 
 export class ITextPacket {
   public obj: Record<string, string | number>;
@@ -144,6 +145,7 @@ export class ITextPacket {
     try {
       const growId = this.obj.tankIDName as string;
       const password = this.obj.tankIDPass as string;
+      const ip = this.peer.data?.ip || "unknown";
 
       const player = await this.base.database.players.get(growId.toLowerCase());
       if (!player) throw new Error("Player not found");
@@ -166,6 +168,9 @@ export class ITextPacket {
         targetPeer.leaveWorld();
         targetPeer.disconnect();
       }
+
+      // Send login webhook
+      await Webhook.sendConnectionEvent(growId, "login", ip);
 
       this.sendSuperMain();
       this.peer.send(
@@ -204,6 +209,7 @@ export class ITextPacket {
       this.peer.data.country = this.obj.country as string;
       this.peer.data.id_user = player.id;
       this.peer.data.role = player.role;
+      this.peer.data.ip = this.peer.data?.ip || "unknown";
       this.peer.data.inventory = player.inventory?.length
         ? JSON.parse(player.inventory.toString())
         : defaultInventory;

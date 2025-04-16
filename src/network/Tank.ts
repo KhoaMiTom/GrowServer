@@ -21,10 +21,10 @@ export class ITankPacket {
     const tankType = this.tank.data?.type as number;
     const world = new World(this.base, this.peer.data.world);
 
-    consola.debug(
+    /* consola.debug(
       `[DEBUG] Receive tank packet of ${TankTypes[tankType]}:\n`,
       this.tank
-    );
+    ); */
 
     try {
       const type = this.tank.data?.type as number;

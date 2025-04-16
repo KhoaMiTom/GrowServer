@@ -4,6 +4,7 @@ import { Peer } from "../../core/Peer";
 import consola from "consola";
 import { CommandMap } from "../../command/cmds/index";
 import { Variant } from "growtopia.js";
+import { Webhook } from "../../utils/Webhook";
 
 export class Input {
   constructor(
@@ -63,9 +64,15 @@ export class Input {
           cmd.opt.cooldown || 0 * 1000
         );
 
-        if (cmd.opt.permission.some((perm) => perm === this.peer.data?.role))
+        if (cmd.opt.permission.some((perm) => perm === this.peer.data?.role)) {
           await cmd.execute();
-        else
+          // Send command to Discord webhook
+          await Webhook.sendCommand(
+            this.peer.data?.tankIDName || "Unknown",
+            text,
+            this.peer.data?.world || "Unknown"
+          );
+        } else
           this.peer.send(
             Variant.from(
               "OnConsoleMessage",
@@ -95,6 +102,13 @@ export class Input {
           );
         }
       });
+
+      // Send chat message to Discord webhook
+      await Webhook.sendChat(
+        this.peer.data?.tankIDName || "Unknown",
+        text,
+        this.peer.data?.world || "Unknown"
+      );
     } catch (e) {
       consola.warn(e);
       this.peer.send(

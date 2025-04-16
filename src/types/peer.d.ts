@@ -7,6 +7,7 @@ export interface PeerData {
   rotatedLeft: boolean;
   requestedName: string;
   tankIDName: string;
+  tankIDPass?: string;
   netID: number;
   country: string;
   id_user: string | number;
@@ -18,6 +19,7 @@ export interface PeerData {
   lastCheckpoint?: CheckPoint;
   lastVisitedWorlds?: string[];
   state: PeerState;
+  ip?: string;
 }
 
 export interface PeerState {

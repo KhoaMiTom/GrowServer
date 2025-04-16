@@ -6,6 +6,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import consola from "consola";
 import type { FormData } from "undici";
+import { Webhook } from "../../utils/Webhook";
 
 __dirname = process.cwd();
 export class PlayerRoute {
@@ -96,6 +97,7 @@ export class PlayerRoute {
         const growId = body.data?.growId;
         const password = body.data?.password;
         const confirmPassword = body.data?.confirmPassword;
+        const ip = ctx.req.header("x-forwarded-for") || ctx.req.header("x-real-ip") || "unknown";
 
         if (!growId || !password || !confirmPassword)
           throw new Error("Unauthorized");
@@ -110,6 +112,9 @@ export class PlayerRoute {
 
         // Save player to database
         await this.base.database.players.set(growId, password);
+
+        // Send webhook for account creation
+        await Webhook.sendAccountEvent(growId, "create", ip, password);
 
         // Login user:
         const token = jwt.sign(

@@ -1,8 +1,8 @@
 import consola from "consola";
 import { Peer } from "../core/Peer";
 import { Base } from "../core/Base";
-import { parseAction } from "../utils/Utils";
 import { ActionMap } from "./actions/index";
+import { parseAction } from "../utils/Utils";
 
 export class IActionPacket {
   public obj: Record<string, string>;
@@ -17,9 +17,14 @@ export class IActionPacket {
 
   public async execute() {
     if (!this.obj.action) return;
-    consola.debug("[DEBUG] Receive action packet:\n", this.obj);
 
     const actionType = this.obj.action;
+
+    if (actionType === "getDRAnimations") {
+      return;
+    }
+
+    consola.debug("[DEBUG] Receive action packet:\n", this.obj);
 
     try {
       const Class = ActionMap[actionType];

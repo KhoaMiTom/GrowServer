@@ -48,8 +48,8 @@ async function hash(password) {
       created_at: dateNow
     },
     {
-      name: "jadlionhd",
-      display_name: "JadlionHD",
+      name: "khoamitom",
+      display_name: "KhoaMiTom",
       password: await hash("admin"),
       role: "1",
       gems: 1000,
