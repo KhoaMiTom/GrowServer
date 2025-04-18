@@ -53,12 +53,16 @@ export class TileChangeReq {
 
   private checkOwner() {
     if (this.world.data.owner) {
+      // OWNER role bypasses all checks
+      if (this.peer.data?.role === ROLE.OWNER) return true;
+
       if (this.world.data.owner.id !== this.peer.data?.id_user) return false;
-      if (this.peer.data?.role !== ROLE.DEVELOPER) return false;
+      if (this.peer.data?.role !== ROLE.DEVELOPER && this.peer.data?.role !== ROLE.OWNER) return false;
 
       if (
         this.itemMeta.id === 242 &&
-                this.world.data.owner.id !== this.peer.data?.id_user
+        this.world.data.owner.id !== this.peer.data?.id_user &&
+        this.peer.data?.role !== ROLE.OWNER // OWNER can break world locks
       ) {
         this.peer.send(
           Variant.from(
@@ -626,14 +630,17 @@ export class TileChangeReq {
   private async onFist() {
     if (!this.itemMeta.id) return;
     if (!this.checkOwner()) return this.sendLockSound();
+
     if (
       typeof this.block.damage !== "number" ||
-            (this.block.resetStateAt as number) <= Date.now()
+      (this.block.resetStateAt as number) <= Date.now()
     )
       this.block.damage = 0;
+
     if (
       this.unbreakableBlocks.includes(this.itemMeta.id) &&
-            this.peer.data?.role !== ROLE.DEVELOPER
+      this.peer.data?.role !== ROLE.DEVELOPER &&
+      this.peer.data?.role !== ROLE.OWNER // OWNER can break unbreakable blocks
     ) {
       this.peer.send(
         Variant.from(
@@ -657,8 +664,8 @@ export class TileChangeReq {
     this.peer.every((p) => {
       if (
         p.data?.netID !== this.peer.data?.netID &&
-                p.data?.world === this.peer.data?.world &&
-                p.data?.world !== "EXIT"
+        p.data?.world === this.peer.data?.world &&
+        p.data?.world !== "EXIT"
       ) {
         p.send(this.tank);
       }
@@ -688,14 +695,37 @@ export class TileChangeReq {
     return values;
   }
 
+  private calculateGemDrop() {
+    const rarity = this.itemMeta.rarity ?? 1;
+    const gems = this.randomizeGemsDrop(rarity);
+    console.log("[Debug] Gems calculation:", {
+      blockId: this.itemMeta.id,
+      rarity: rarity,
+      calculatedGems: gems
+    });
+    if (gems > 0) {
+      this.dropRandomGems(gems, gems * 2, this.block);
+    }
+  }
+
   public dropRandomGems(min: number, max: number, block: Block) {
     const randGems = Math.floor(Math.random() * (max - min + 1)) + min;
     const arrGems = this.splitGems(randGems);
+    
+    console.log("[Debug] Dropping gems:", {
+      min,
+      max,
+      randGems,
+      splitGems: arrGems,
+      autoPickup: this.peer.data.state.autoPickupGems
+    });
 
     if (this.peer.data.state.autoPickupGems) {
       // Auto collect gems
       const totalGems = arrGems.reduce((sum, value) => sum + value, 0);
       this.peer.data.gems += totalGems;
+      
+      // Send multiple variants for better visibility
       this.peer.send(
         Variant.from(
           "OnTalkBubble",
@@ -703,51 +733,63 @@ export class TileChangeReq {
           `\`2Collected ${totalGems} gems\`\``,
           0
         ),
-        Variant.from("OnSetBux", this.peer.data.gems)
+        Variant.from("OnSetBux", this.peer.data.gems),
+        Variant.from(
+          "OnConsoleMessage",
+          `\`2Collected ${totalGems} gems\`\``
+        ),
+        Variant.from(
+          { netID: this.peer.data?.netID },
+          "OnPlayPositioned",
+          "audio/pickup_gem.wav"
+        )
       );
+      
       this.peer.saveToCache();
       this.peer.saveToDatabase();
     } else {
-      // Drop gems normally
+      // Drop gems normally with sound effect
       arrGems.forEach((v) => {
         const extra = Math.random() * 6;
         const x = (block.x as number) * 32 + extra;
         const y = (block.y as number) * 32 + extra - Math.floor(Math.random() * (3 - -1) + -3);
         this.world.drop(this.peer, x, y, 112, v, { tree: true, noSimilar: true });
       });
-    }
-  }
-
-  private calculateGemDrop() {
-    const rarity = this.itemMeta.rarity ?? 1;
-    const gems = this.randomizeGemsDrop(rarity);
-    if (gems > 0) {
-      this.dropRandomGems(gems, gems * 2, this.block);
+      
+      // Play gem drop sound
+      this.peer.send(
+        Variant.from(
+          { netID: this.peer.data?.netID },
+          "OnPlayPositioned",
+          "audio/drop_gem.wav"
+        )
+      );
     }
   }
 
   private randomizeGemsDrop(rarity: number) {
     const max = Math.random();
     let bonus = 0;
-    const threshold = Math.min(0.1 + (rarity / 100), 0.5); // Linear increase, caps on 0.5
+    // Lower base threshold and cap for less frequent drops
+    const threshold = Math.min(0.15 + (rarity / 150), 0.4); // Reduced from 0.3/100/0.7
     
     if (max <= threshold) {
-      bonus = 1;
+      bonus = 1; // Reduced from 2
     }
-    if (rarity >= 30 && max <= 0.5) {
-      bonus = 5;
-    } else if (rarity >= 60 && max <= 0.6) {
-      bonus = 12;
-    } else if (rarity >= 60 && max <= 0.3) {
-      bonus = 20; // Add bonus for high rarity items
+    if (rarity >= 30 && max <= 0.4) { // Reduced from 0.6
+      bonus = 4; // Reduced from 7
+    } else if (rarity >= 60 && max <= 0.5) { // Reduced from 0.7
+      bonus = 8; // Reduced from 15
+    } else if (rarity >= 60 && max <= 0.3) { // Reduced from 0.4
+      bonus = 12; // Reduced from 25
     }
 
-    // Gem Calculation based on Rarity
+    // Reduce base gem drops
     let gems: number;
     if (rarity < 30) {
-      gems = rarity / 12;
+      gems = rarity / 15; // Changed from 10 to 15
     } else {
-      gems = rarity / 8;
+      gems = rarity / 10; // Changed from 6 to 10
     }
 
     return Math.floor(gems + bonus);
@@ -757,6 +799,7 @@ export class TileChangeReq {
     const placedItem = this.base.items.metadata.items.find(
       (i) => i.id === this.tank.data?.info
     );
+    
     if (!placedItem || !placedItem.id) return;
 
     this.block.damage = 0;
@@ -770,14 +813,20 @@ export class TileChangeReq {
 
     this.block.rotatedLeft = undefined;
     this.peer.addXp(Math.max(1, Math.round((this.itemMeta.rarity ?? 0) / 5)) * 5 / 5, false);
-    this.world.drop(
-      this.peer,
-      this.block.x * 32 + Math.floor(Math.random() * 16),
-      this.block.y * 32 + Math.floor(Math.random() * 16),
-      this.randomizeDrop(this.itemMeta.id ?? - 1) ?? 0,
-      1,
-      { tree: true }
-    );
+    
+    const dropId = this.randomizeDrop(this.itemMeta.id ?? -1);
+    if (dropId > 0) {
+      const dropX = this.block.x * 32 + Math.floor(Math.random() * 16);
+      const dropY = this.block.y * 32 + Math.floor(Math.random() * 16);
+      this.world.drop(
+        this.peer,
+        dropX,
+        dropY,
+        dropId,
+        1,
+        { tree: true }
+      );
+    }
 
     this.calculateGemDrop();
 
@@ -894,15 +943,17 @@ export class TileChangeReq {
 
   private randomizeDrop(id: number) {
     if (id === -1) {
-      return 0; // was -1. block with id -1 can drop but when you will enter world with this dropped -1 id block it will throw an error 
+      return 0;
     }
     const rand = Math.random();
-    if (rand <= 0.33) {        // 2/9 chance
-      return id + 1;           // seed
-    } else if (rand <= 0.21) { // 1/9 chance
+    
+    // Fix probability ranges
+    if (rand <= 0.21) {        // 21% chance
       return id;               // block
-    } else {
-      return 0;
+    } else if (rand <= 0.54) { // 33% chance (0.54 - 0.21)
+      return id + 1;           // seed
+    } else {                   // 46% chance
+      return 0;                // nothing
     }
   }
 
@@ -982,6 +1033,13 @@ export class TileChangeReq {
   }
 
   private sendLockSound() {
+    console.log("[Debug] Lock sound triggered:", {
+      reason: "Block is locked or unbreakable",
+      playerName: this.peer.data?.tankIDName,
+      worldName: this.peer.data?.world,
+      blockId: this.itemMeta?.id
+    });
+    
     this.peer.every((p) => {
       if (p.data?.world === this.peer.data?.world && p.data?.world !== "EXIT")
         p.send(

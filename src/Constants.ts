@@ -19,6 +19,7 @@ export const Y_LAVA_START = 50;
 export const Y_END_DIRT = 55;
 
 export const ROLE = {
+  OWNER:     "0",
   DEVELOPER: "1",
   BASIC:     "2",
   SUPPORTER: "3"

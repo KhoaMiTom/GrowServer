@@ -74,25 +74,31 @@ export class Peer extends OldPeer<PeerData> {
 
   public get name(): string {
     switch (this.data.role) {
-      default: {
-        return `\`w${this.data.tankIDName}\`\``;
-      }
-      case ROLE.SUPPORTER: {
-        return `\`e${this.data.tankIDName}\`\``;
+      case ROLE.OWNER: {
+        return `\`6@${this.data.tankIDName}\`\``; // Gold color for owner
       }
       case ROLE.DEVELOPER: {
-        return `\`b@${this.data.tankIDName}\`\``;
+        return `\`b@${this.data.tankIDName}\`\``; // Blue for dev
+      }
+      case ROLE.SUPPORTER: {
+        return `\`e${this.data.tankIDName}\`\``; // Yellow for supporter
+      }
+      default: {
+        return `\`w${this.data.tankIDName}\`\``; // White for basic
       }
     }
   }
 
   public get country(): string {
     switch (this.data.role) {
-      default: {
-        return this.data.country;
+      case ROLE.OWNER: {
+        return "id"; // Indonesia flag for owner (crown symbol)
       }
       case ROLE.DEVELOPER: {
-        return "rt";
+        return "rt"; // RT flag for dev
+      }
+      default: {
+        return this.data.country;
       }
     }
   }
